@@ -54,7 +54,7 @@ public class Util {
                 tx.rollback();
             }
         } catch (HibernateException e) {
-            System.out.println("Transaction error");;
+            System.out.println("Transaction error");
         }
     }
 
