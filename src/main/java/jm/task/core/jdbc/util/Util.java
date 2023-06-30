@@ -1,16 +1,16 @@
 package jm.task.core.jdbc.util;
 
 import jm.task.core.jdbc.model.User;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.exception.JDBCConnectionException;
 import org.hibernate.service.ServiceRegistry;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Properties;
 
 public class Util {
@@ -18,37 +18,19 @@ public class Util {
     public static String dbUrl = "jdbc:mysql://192.168.89.21:3306/firstdb";
     public static String dbUsername = "root";
     public static String dbPassword = "root";
-    private static Connection connection;
-
     private static SessionFactory sessionFactory;
-
-    public static Connection getConnection() {
-
-        Connection connection = null;
-
-        try {
-            connection = DriverManager.getConnection(dbUrl, dbUsername, dbPassword);
-            System.out.println("\nConnection established\n");
-        } catch (SQLException e) {
-            throw new RuntimeException("Database properties file not available or no connection ", e);
-        }
-        return connection;
-    }
-
     public static SessionFactory getSessionFactory() {
         if (sessionFactory == null) {
             try {
                 Configuration configuration = new Configuration();
 
                 Properties settings = new Properties();
-                settings.put(Environment.DRIVER, "com.mysql.cj.jdbc.Driver");
                 settings.put(Environment.URL, dbUrl);
                 settings.put(Environment.USER, dbUsername);
                 settings.put(Environment.PASS, dbPassword);
                 settings.put(Environment.DIALECT, "org.hibernate.dialect.MySQL5Dialect");
                 settings.put(Environment.SHOW_SQL, "true");
-                settings.put(Environment.CURRENT_SESSION_CONTEXT_CLASS, "thread");
-                settings.put(Environment.HBM2DDL_AUTO,"update");
+
 
                 configuration.setProperties(settings);
                 configuration.addAnnotatedClass(User.class);
@@ -66,4 +48,28 @@ public class Util {
         return sessionFactory;
     }
 
+    public static void setRollback (Transaction tx) {
+        try {
+            if (tx.getStatus().canRollback()) {
+                tx.rollback();
+            }
+        } catch (HibernateException e) {
+            System.out.println("Transaction error");;
+        }
+    }
+
+    public static void dropTableOrClearRows(String hqlQuery) {
+        try (Session session = Util.getSessionFactory().openSession()) {
+            final Transaction tx = session.beginTransaction();
+            try {
+                session.createSQLQuery(hqlQuery).executeUpdate();
+                tx.commit();
+            } catch (HibernateException e) {
+                Util.setRollback(tx);
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+    }
 }
+
