@@ -57,19 +57,5 @@ public class Util {
             System.out.println("Transaction error");
         }
     }
-
-    public static void dropTableOrClearRows(String hqlQuery) {
-        try (Session session = Util.getSessionFactory().openSession()) {
-            final Transaction tx = session.beginTransaction();
-            try {
-                session.createSQLQuery(hqlQuery).executeUpdate();
-                tx.commit();
-            } catch (HibernateException e) {
-                Util.setRollback(tx);
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-    }
 }
 

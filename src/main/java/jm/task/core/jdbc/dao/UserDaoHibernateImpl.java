@@ -38,7 +38,7 @@ public class UserDaoHibernateImpl implements UserDao {
 
     @Override
     public void dropUsersTable() {
-        Util.dropTableOrClearRows(hqlDrop);
+        dropTableOrClearRows(hqlDrop);
     }
 
     @Override
@@ -63,6 +63,7 @@ public class UserDaoHibernateImpl implements UserDao {
             try {
                 User user = session.get(User.class, id);
                 session.delete(user);
+                tx.commit();
             } catch (HibernateException e) {
                 Util.setRollback(tx);
             }
@@ -75,9 +76,7 @@ public class UserDaoHibernateImpl implements UserDao {
     public List<User> getAllUsers() {
         List<User> users = null;
         try (Session session = Util.getSessionFactory().openSession()) {
-            session.beginTransaction();
             users = session.createQuery(hqlSelectAll, User.class).getResultList();
-            session.getTransaction().commit();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -87,7 +86,21 @@ public class UserDaoHibernateImpl implements UserDao {
 
     @Override
     public void cleanUsersTable() {
-        Util.dropTableOrClearRows(hqlDeleteAll);
+        dropTableOrClearRows(hqlDeleteAll);
+    }
+
+    public static void dropTableOrClearRows(String hqlQuery) {
+        try (Session session = Util.getSessionFactory().openSession()) {
+            final Transaction tx = session.beginTransaction();
+            try {
+                session.createSQLQuery(hqlQuery).executeUpdate();
+                tx.commit();
+            } catch (HibernateException e) {
+                Util.setRollback(tx);
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
     }
 }
 
