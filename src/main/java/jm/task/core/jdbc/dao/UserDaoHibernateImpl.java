@@ -13,8 +13,8 @@ public class UserDaoHibernateImpl implements UserDao {
     private static final String hqlCreateTable = "CREATE TABLE IF NOT EXISTS users" +
             "(id BIGINT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255) NOT NULL , lastname VARCHAR(255) NOT NULL , " +
             "age TINYINT(255) NOT NULL)";
-    private static final String hqlDrop = "DROP TABLE IF EXISTS users";
-    private static final String hqlDeleteAll = "delete from users";
+    private static final String sqlDrop = "DROP TABLE IF EXISTS users";
+    private static final String hqlDeleteAll = "delete User ";
 
     private static final String hqlSelectAll = "FROM User";
 
@@ -38,7 +38,18 @@ public class UserDaoHibernateImpl implements UserDao {
 
     @Override
     public void dropUsersTable() {
-        dropTableOrClearRows(hqlDrop);
+
+        try (Session session = Util.getSessionFactory().openSession()) {
+            final Transaction tx = session.beginTransaction();
+            try {
+                session.createSQLQuery(sqlDrop).executeUpdate();
+                tx.commit();
+            } catch (HibernateException e) {
+                Util.setRollback(tx);
+            }
+        } catch (Exception e) {
+            // Ignore
+        };
     }
 
     @Override
@@ -84,16 +95,11 @@ public class UserDaoHibernateImpl implements UserDao {
     }
 
 
-    @Override
-    public void cleanUsersTable() {
-        dropTableOrClearRows(hqlDeleteAll);
-    }
-
-    public static void dropTableOrClearRows(String hqlQuery) {
+   public void cleanUsersTable() {
         try (Session session = Util.getSessionFactory().openSession()) {
             final Transaction tx = session.beginTransaction();
             try {
-                session.createSQLQuery(hqlQuery).executeUpdate();
+                session.createQuery(hqlDeleteAll).executeUpdate();
                 tx.commit();
             } catch (HibernateException e) {
                 Util.setRollback(tx);
